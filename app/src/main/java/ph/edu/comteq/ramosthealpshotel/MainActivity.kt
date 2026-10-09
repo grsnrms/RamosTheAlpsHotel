@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -49,11 +50,28 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             RamosTheAlpsHotelTheme {
+                var selectedHotelId by remember { mutableStateOf<Int?>(null) }
+
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Homepage(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                    val currentSelectedId = selectedHotelId
+                    if (currentSelectedId != null) {
+                        BookingDetailsScreen(
+                            hotelId = currentSelectedId,
+                            onBackClick = { selectedHotelId = null },
+                            modifier = Modifier.padding(innerPadding)
+                        )
+                    } else {
+                        Homepage(
+                            name = "Android",
+                            onHotelClick = { hotelId ->
+                                // Only hotels 1000 and 1008 have JSON detail files; others are intentionally non-functional
+                                if (hotelId == 1000 || hotelId == 1008) {
+                                    selectedHotelId = hotelId
+                                }
+                            },
+                            modifier = Modifier.padding(innerPadding)
+                        )
+                    }
                 }
             }
         }
@@ -61,7 +79,11 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun Homepage(name: String, modifier: Modifier = Modifier) {
+fun Homepage(
+    name: String = "Android",
+    onHotelClick: (Int) -> Unit = {},
+    modifier: Modifier = Modifier
+) {
     val context = LocalContext.current
     var hotels by remember { mutableStateOf(value = emptyList<Hotel>()) }
 
@@ -127,18 +149,26 @@ fun Homepage(name: String, modifier: Modifier = Modifier) {
                 .padding(top = 10.dp)
         ) {
             items(filteredHotels, key = { it.hotel_id }) { hotel ->
-                HotelCard(hotel = hotel)
+                HotelCard(
+                    hotel = hotel,
+                    onClick = { onHotelClick(hotel.hotel_id) }
+                )
             }
         }
     }
 }
 
 @Composable
-fun HotelCard(hotel: Hotel, modifier: Modifier = Modifier) {
+fun HotelCard(
+    hotel: Hotel,
+    onClick: () -> Unit = {},
+    modifier: Modifier = Modifier
+) {
     Card(
         modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 6.dp)
+            .clickable { onClick() }
     ) {
         Row(
             modifier = Modifier
@@ -155,7 +185,7 @@ fun HotelCard(hotel: Hotel, modifier: Modifier = Modifier) {
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .size(85.dp)
-                    .clip(RoundedCornerShape(9.dp))
+                    .clip(RoundedCornerShape(8.dp))
             )
 
             Spacer(modifier = Modifier.width(12.dp))
