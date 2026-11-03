@@ -1,6 +1,7 @@
 package ph.edu.comteq.ramosthealpshotel
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -69,13 +70,13 @@ fun SimpleProgressBar(progress: Float, modifier: Modifier = Modifier) {
 fun BookingDetailsScreen(
     hotelId: Int,
     onBackClick: () -> Unit,
+    onRoomClick: (String, Room) -> Unit = { _, _ -> },
+    startTab: Int = 0,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     var hotelDetails by remember { mutableStateOf<HotelDetails?>(null) }
-    var selectedTabIndex by remember { mutableIntStateOf(0) }
-
-    // Load hotel details JSON from assets
+    var selectedTabIndex by remember { mutableIntStateOf(startTab) }
     LaunchedEffect(hotelId) {
         try {
             val fileName = "hotels_details.$hotelId.json"
@@ -94,7 +95,6 @@ fun BookingDetailsScreen(
             .fillMaxSize()
             .background(Color.White)
     ) {
-        // Top Bar
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -118,7 +118,6 @@ fun BookingDetailsScreen(
             )
         }
 
-        // Subpage Tabs
         TabRow(
             selectedTabIndex = selectedTabIndex,
             containerColor = Color.White
@@ -149,7 +148,6 @@ fun BookingDetailsScreen(
 
         val details = hotelDetails
         if (details != null) {
-            // Hotel Name Header
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -164,12 +162,13 @@ fun BookingDetailsScreen(
                     textAlign = TextAlign.Center
                 )
             }
-
-            // Tab Pages
             if (selectedTabIndex == 0) {
                 GuestReviewsTab(guestReviews = details.guest_reviews)
             } else {
-                RoomSelectionTab(rooms = details.rooms)
+                RoomSelectionTab(
+                    rooms = details.rooms,
+                    onRoomClick = { room -> onRoomClick(details.hotel_name, room) }
+                )
             }
         } else {
             Box(
@@ -191,7 +190,6 @@ fun GuestReviewsTab(guestReviews: GuestReviews) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        // Ratings Area
         Column(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -224,8 +222,6 @@ fun GuestReviewsTab(guestReviews: GuestReviews) {
                 }
             }
         }
-
-        // Reviews Area
         Column(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -295,7 +291,7 @@ fun GuestReviewsTab(guestReviews: GuestReviews) {
 }
 
 @Composable
-fun RoomSelectionTab(rooms: List<Room>) {
+fun RoomSelectionTab(rooms: List<Room>, onRoomClick: (Room) -> Unit = {}) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -315,7 +311,9 @@ fun RoomSelectionTab(rooms: List<Room>) {
 
             rooms.forEach { room ->
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onRoomClick(room) },
                     colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F8F8))
                 ) {
                     Column(

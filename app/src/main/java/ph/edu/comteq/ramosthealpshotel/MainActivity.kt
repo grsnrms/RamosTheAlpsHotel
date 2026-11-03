@@ -2,6 +2,7 @@ package ph.edu.comteq.ramosthealpshotel
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
@@ -50,25 +51,61 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             RamosTheAlpsHotelTheme {
-                var selectedHotelId by remember { mutableStateOf<Int?>(null) }
+                var screen by remember { mutableStateOf("home") }
+                var selectedHotelId by remember { mutableStateOf(0) }
+                var selectedHotelName by remember { mutableStateOf("") }
+                var selectedRoom by remember { mutableStateOf<Room?>(null) }
+                var detailsTab by remember { mutableStateOf(0) }
+
+                BackHandler(enabled = screen != "home") {
+                    if (screen == "confirm") {
+                        screen = "details"
+                    } else {
+                        screen = "home"
+                    }
+                }
 
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    val currentSelectedId = selectedHotelId
-                    if (currentSelectedId != null) {
+                    if (screen == "details") {
                         BookingDetailsScreen(
-                            hotelId = currentSelectedId,
-                            onBackClick = { selectedHotelId = null },
+                            hotelId = selectedHotelId,
+                            onBackClick = { screen = "home" },
+                            onRoomClick = { hotelName, room ->
+                                selectedHotelName = hotelName
+                                selectedRoom = room
+                                detailsTab = 1
+                                screen = "confirm"
+                            },
+                            startTab = detailsTab,
+                            modifier = Modifier.padding(innerPadding)
+                        )
+                    } else if (screen == "confirm") {
+                        val room = selectedRoom
+                        if (room != null) {
+                            BookingConfirmScreen(
+                                hotelName = selectedHotelName,
+                                room = room,
+                                onBackClick = { screen = "details" },
+                                onBooked = { screen = "bookings" },
+                                modifier = Modifier.padding(innerPadding)
+                            )
+                        }
+                    } else if (screen == "bookings") {
+                        MyBookingsScreen(
+                            onBackClick = { screen = "home" },
                             modifier = Modifier.padding(innerPadding)
                         )
                     } else {
                         Homepage(
                             name = "Android",
                             onHotelClick = { hotelId ->
-                                // Only hotels 1000 and 1008 have JSON detail files; others are intentionally non-functional
                                 if (hotelId == 1000 || hotelId == 1008) {
                                     selectedHotelId = hotelId
+                                    detailsTab = 0
+                                    screen = "details"
                                 }
                             },
+                            onProfileClick = { screen = "bookings" },
                             modifier = Modifier.padding(innerPadding)
                         )
                     }
@@ -82,14 +119,13 @@ class MainActivity : ComponentActivity() {
 fun Homepage(
     name: String = "Android",
     onHotelClick: (Int) -> Unit = {},
+    onProfileClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     var hotels by remember { mutableStateOf(value = emptyList<Hotel>()) }
 
     var searchQuery by remember { mutableStateOf("") }
-
-    // load json data
     LaunchedEffect(key1 = Unit) {
         val json = context.assets.open("hotels.json")
             .bufferedReader()
@@ -129,7 +165,9 @@ fun Homepage(
             Image(
                 painter = painterResource(id = R.drawable.person),
                 contentDescription = "Profile",
-                modifier = Modifier.size(28.dp)
+                modifier = Modifier
+                    .size(28.dp)
+                    .clickable { onProfileClick() }
             )
         }
 
